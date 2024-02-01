@@ -44,6 +44,8 @@ class SearchFragment : Fragment() {
         adapter = SearchAdapter(searchResult)
         binding.rvMain.adapter = adapter
         binding.rvMain.layoutManager = GridLayoutManager(requireContext(), 2)
+        // 리사이클러 뷰에서 이벤트 시 주변 아이템 깜빡이는 버그 해결 위해서 추가
+        binding.rvMain.itemAnimator = null
 
         binding.btnSearch.setOnClickListener {
             communicateNetWork(setUpSearchParameter(binding.etSearch.text.toString()))

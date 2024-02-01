@@ -33,6 +33,8 @@ class CollectionFragment : Fragment() {
         adapter = CollectionAdapter(SearchFragment.selectedItem)
         binding.rvCollaction.adapter = adapter
         binding.rvCollaction.layoutManager = GridLayoutManager(requireContext(), 2)
+        // 리사이클러 뷰에서 이벤트 시 주변 아이템 깜빡이는 버그 해결 위해서 추가
+        binding.rvCollaction.itemAnimator = null
 
         // 아이템 클릭 시 삭제
         adapter.itemClick = object : CollectionAdapter.ItemClick {
