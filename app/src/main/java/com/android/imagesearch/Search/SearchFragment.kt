@@ -1,4 +1,4 @@
-package com.android.imagesearch
+package com.android.imagesearch.Search
 
 import android.content.Context.INPUT_METHOD_SERVICE
 import android.content.Context.MODE_PRIVATE
@@ -10,16 +10,16 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AlphaAnimation
 import android.view.inputmethod.InputMethodManager
-import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.android.imagesearch.SelectedItem
 import com.android.imagesearch.data.SearchDocument
 import com.android.imagesearch.databinding.FragmentSearchBinding
-import com.android.imagesearch.retrofit.NetWorkClient
-import kotlinx.coroutines.launch
 
 class SearchFragment : Fragment() {
     private val binding by lazy { FragmentSearchBinding.inflate(layoutInflater) }
+    private val viewModel by lazy { ViewModelProvider(this).get(SearchViewModel::class.java) }
 
     private var searchResult = mutableListOf<SearchDocument>()
 
@@ -27,7 +27,7 @@ class SearchFragment : Fragment() {
         var selectedItem = mutableListOf<SelectedItem>()
     }
 
-    private lateinit var adapter: SearchAdapter
+    private lateinit var searchAdapter: SearchAdapter
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,30 +40,49 @@ class SearchFragment : Fragment() {
         return binding.root
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        adapter = SearchAdapter(searchResult)
-        binding.rvMain.adapter = adapter
-        binding.rvMain.layoutManager = GridLayoutManager(requireContext(), 2)
-        // 리사이클러 뷰에서 이벤트 시 주변 아이템 깜빡이는 버그 해결 위해서 추가
-        binding.rvMain.itemAnimator = null
+    private fun setObserver() {
+        viewModel.searchResult.observe(viewLifecycleOwner) {
+            searchAdapter.setItems(it)
+//            adapter.mItems.addAll(it)
+//            adapter.notifyDataSetChanged()
+            Log.d("com/android/imagesearch/Search","it = ${it}")
+        }
+    }
 
+    private fun initRecyclerView() {
+        searchAdapter = SearchAdapter(searchResult)
+        with(binding.rvMain) {
+            adapter = searchAdapter
+            layoutManager = GridLayoutManager(requireContext(), 2)
+            itemAnimator = null     // 리사이클러 뷰에서 이벤트 시 주변 아이템 깜빡이는 버그 해결 위해서 추가
+        }
+        Log.d("com/android/imagesearch/Search","initRecyclerView")
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        initRecyclerView()
+        setObserver()
+
+        // 검색 버튼 클릭 시 이벤트
         binding.btnSearch.setOnClickListener {
-            communicateNetWork(setUpSearchParameter(binding.etSearch.text.toString()))
-            // 마지막 검색어 저장
-            saveData()
+//            communicateNetWork(setUpSearchParameter(binding.etSearch.text.toString()))
+            viewModel.communicateNetWork(viewModel.setUpSearchParameter(binding.etSearch.text.toString()))
+            saveLastKeyword()
             // 키보드 숨기기
             binding.btnSearch.clearFocus()
             val inputMethodManager =
                 activity?.getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
             inputMethodManager.hideSoftInputFromWindow(view.windowToken, 0)
+            Log.d("com/android/imagesearch/Search","searchResult = ${searchResult}")
         }
 
         // 아이템 클릭 시 보관함으로
-        adapter.itemClick = object : SearchAdapter.ItemClick {
+        searchAdapter.itemClick = object : SearchAdapter.ItemClick {
             override fun onClick(item: SearchDocument, position: Int) {
                 val selectedThumbnail = item.thumbnail_url
                 val selectedSource = item.display_sitename
                 val selectedTime = item.datetime
+
                 if (selectedItem.contains(
                         SelectedItem(
                             selectedThumbnail,
@@ -82,7 +101,7 @@ class SearchFragment : Fragment() {
                 } else {
                     selectedItem.add(SelectedItem(selectedThumbnail, selectedSource, selectedTime))
                 }
-                Log.d("Search", "SelectedItem = ${selectedItem}")
+                Log.d("com/android/imagesearch/Search", "SelectedItem = $selectedItem")
             }
         }
 
@@ -90,9 +109,11 @@ class SearchFragment : Fragment() {
         val fadeIn = AlphaAnimation(0f, 1f).apply { duration = 1000 }
         val fadeOut = AlphaAnimation(1f, 0f).apply { duration = 1000 }
         var isTop = true
+
         binding.rvMain.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
+
                 if (binding.rvMain.canScrollVertically(-1) == false && newState == RecyclerView.SCROLL_STATE_IDLE) {
                     binding.fbFloating.startAnimation(fadeOut)
                     binding.fbFloating.visibility = View.GONE
@@ -115,30 +136,30 @@ class SearchFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
     }
 
-    private fun communicateNetWork(param: HashMap<String, String>) = lifecycleScope.launch() {
-        val responseData = NetWorkClient.searchNetWork.getSearch(param)
-        searchResult.clear()
+//    private fun communicateNetWork(param: HashMap<String, String>) = lifecycleScope.launch() {
+//        val responseData = NetWorkClient.searchNetWork.getSearch(param)
+//        searchResult.clear()
+//
+//        responseData.searchDocument?.forEach {
+//            searchResult.add(it)
+//        }
+//        // 검색 결과 datetime 최신순으로 정렬
+//        searchResult.sortByDescending { it.datetime }
+//
+//        adapter.mItems = searchResult
+//        adapter.notifyDataSetChanged()
+//    }
 
-        responseData.searchDocument?.forEach {
-            searchResult.add(it)
-        }
-        // 검색 결과 datetime 최신순으로 정렬
-        searchResult.sortByDescending { it.datetime }
+//    private fun setUpSearchParameter(text: String): HashMap<String, String> {
+//        return hashMapOf(
+//            "query" to text,
+//            "sort" to "accuracy",
+//            "page" to "1",
+//            "size" to "80"
+//        )
+//    }
 
-        adapter.mItems = searchResult
-        adapter.notifyDataSetChanged()
-    }
-
-    private fun setUpSearchParameter(text: String): HashMap<String, String> {
-        return hashMapOf(
-            "query" to text,
-            "sort" to "accuracy",
-            "page" to "1",
-            "size" to "80"
-        )
-    }
-
-    private fun saveData() {
+    private fun saveLastKeyword() {
         val pref = activity?.getSharedPreferences("pref", MODE_PRIVATE)
         val edit = pref?.edit()
         edit?.putString("searchWord", binding.etSearch.text.toString())

@@ -1,7 +1,7 @@
-package com.android.imagesearch
+package com.android.imagesearch.Search
 
+import android.util.Log
 import android.view.LayoutInflater
-import android.view.View
 import android.view.View.INVISIBLE
 import android.view.View.VISIBLE
 import android.view.ViewGroup
@@ -31,12 +31,20 @@ class SearchAdapter(var mItems: MutableList<SearchDocument>) :
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        Log.d("Adapter","onCreateViewHolder")
         val binding = ItemRecyclerviewSearchBinding.inflate(
             LayoutInflater.from(parent.context),
             parent,
             false
         )
         return ViewHolder(binding)
+    }
+
+    fun setItems(items: MutableList<SearchDocument>){
+        Log.d("Adapter","setItems = ${items.size}")
+        mItems.clear()
+        mItems.addAll(items)
+        notifyDataSetChanged()
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
@@ -59,6 +67,7 @@ class SearchAdapter(var mItems: MutableList<SearchDocument>) :
         val parsed = OffsetDateTime.parse(mItems[position].datetime)
         val formatter = parsed.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
         holder.time.text = formatter
+        Log.d("Adapter","onBindViewHolder = ${position}")
     }
 
     override fun getItemCount(): Int {

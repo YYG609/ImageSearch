@@ -1,9 +1,9 @@
-package com.android.imagesearch
+package com.android.imagesearch.Collection
 
 import android.view.LayoutInflater
-import android.view.View.VISIBLE
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.android.imagesearch.SelectedItem
 import com.android.imagesearch.databinding.ItemRecyclerviewSearchBinding
 import com.bumptech.glide.Glide
 import java.time.OffsetDateTime
